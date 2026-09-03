@@ -1,0 +1,11 @@
+{
+  "name": "FMU Exporter — Figma Motion to Unity",
+  "id": "figma-motion-unity-exporter",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "capabilities": [],
+  "documentAccess": "dynamic-page",
+  "networkAccess": { "allowedDomains": ["none"] }
+}

@@ -1,0 +1,173 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2026 Ricardo Sodré. Part of FMU (Figma Motion → Unity). -->
+<!-- FMU Exporter plugin UI: frame summary + compatibility report + export. -->
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff; --fg: #1a1a1a; --muted: #8a8a8a;
+    --line: #e6e6e6; --card: #f7f7f8;
+    --accent: #0d99ff;
+    --ok-bg: #e7f6ec; --ok-fg: #1a7f3d;
+    --info-bg: #e7f0fd; --info-fg: #1a63c4;
+    --warn-bg: #fdf3e0; --warn-fg: #9a6100;
+    --err-bg: #fdeceb; --err-fg: #c5221f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #2c2c2c; --fg: #ffffff; --muted: #a0a0a0;
+      --line: #444; --card: #383838;
+      --ok-bg: #17351f; --ok-fg: #7ee0a0;
+      --info-bg: #16243c; --info-fg: #8bb8ff;
+      --warn-bg: #3a2c12; --warn-fg: #ffcf80;
+      --err-bg: #3a1c1b; --err-fg: #ff9c96;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px; background: var(--bg); color: var(--fg);
+    font: 12px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  h1 { font-size: 12px; margin: 0 0 2px; letter-spacing: .02em; }
+  .sub { color: var(--muted); margin: 0 0 14px; }
+
+  .empty {
+    text-align: center; color: var(--muted); padding: 48px 16px;
+    border: 1px dashed var(--line); border-radius: 10px;
+  }
+  .empty .big { font-size: 22px; margin-bottom: 8px; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+  .frame-name { font-weight: 600; font-size: 13px; }
+  .stats { display: flex; gap: 16px; margin-top: 8px; }
+  .stat .n { font-size: 16px; font-weight: 700; }
+  .stat .l { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+
+  .label { font-weight: 600; margin: 0 0 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: var(--bg); border: 1px solid var(--line); border-radius: 100px; padding: 3px 9px; font-size: 11px; }
+  .chip b { font-weight: 600; }
+  .chip .x { color: var(--muted); }
+
+  .issues { display: flex; flex-direction: column; gap: 6px; }
+  .issue { display: flex; gap: 8px; align-items: flex-start; padding: 7px 9px; border-radius: 7px; font-size: 11px; }
+  .issue .dot { width: 7px; height: 7px; border-radius: 100px; margin-top: 4px; flex: none; }
+  .issue .layer { color: var(--muted); }
+  .lv-ok   { background: var(--ok-bg);   color: var(--ok-fg); }
+  .lv-info { background: var(--info-bg); color: var(--info-fg); }
+  .lv-warn { background: var(--warn-bg); color: var(--warn-fg); }
+  .lv-error{ background: var(--err-bg);  color: var(--err-fg); }
+  .dot-ok{background:var(--ok-fg)} .dot-info{background:var(--info-fg)}
+  .dot-warn{background:var(--warn-fg)} .dot-error{background:var(--err-fg)}
+
+  .foot { position: sticky; bottom: 0; background: var(--bg); padding-top: 8px; }
+  button {
+    width: 100%; padding: 11px; border: 0; border-radius: 8px; font-weight: 600; font-size: 12px;
+    background: var(--accent); color: #fff; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .note { text-align: center; color: var(--muted); margin-top: 8px; font-size: 10px; }
+</style>
+
+<h1>FMU Exporter</h1>
+<p class="sub">Figma Motion → Unity</p>
+
+<div id="empty" class="empty">
+  <div class="big">◇</div>
+  <div>Selecione um frame animado</div>
+  <div style="margin-top:4px; font-size:11px;">com timeline de Motion</div>
+</div>
+
+<div id="content" hidden>
+  <div class="card">
+    <div class="frame-name" id="fname">—</div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="s-dur">—</div><div class="l">duração</div></div>
+      <div class="stat"><div class="n" id="s-lay">—</div><div class="l">camadas anim.</div></div>
+      <div class="stat"><div class="n" id="s-key">—</div><div class="l">keyframes</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Propriedades animadas</div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="card">
+    <div class="label">Compatibilidade com Unity</div>
+    <div class="issues" id="issues"></div>
+  </div>
+</div>
+
+<div class="foot">
+  <button id="export" disabled>Exportar .fmu</button>
+  <div class="note" id="note"></div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const PROP_LABEL = {
+    OPACITY: 'Opacity', HEIGHT: 'Height', WIDTH: 'Width',
+    TRANSLATION_X: 'Move X', TRANSLATION_Y: 'Move Y',
+    ROTATION: 'Rotation', SCALE: 'Scale', SCALE_X: 'Scale X', SCALE_Y: 'Scale Y',
+  };
+
+  $('export').onclick = () => parent.postMessage({ pluginMessage: { type: 'export' } }, '*');
+
+  function fmtDur(s) { return s >= 1 ? (Math.round(s * 100) / 100) + 's' : Math.round(s * 1000) + 'ms'; }
+
+  function render(msg) {
+    const has = msg.ok;
+    $('empty').hidden = has;
+    $('content').hidden = !has;
+    $('export').disabled = !has;
+    $('note').textContent = has ? '' : (msg.hint || '');
+    if (!has) return;
+
+    $('fname').textContent = msg.name + '  ·  ' + msg.size.w + '×' + msg.size.h;
+    $('s-dur').textContent = fmtDur(msg.duration);
+    $('s-lay').textContent = msg.summary.animatedLayers;
+    $('s-key').textContent = msg.summary.keyframes;
+
+    const chips = $('chips'); chips.innerHTML = '';
+    const props = Object.keys(msg.summary.tracks);
+    if (!props.length) chips.innerHTML = '<span class="chip x">nenhuma</span>';
+    props.forEach((p) => {
+      const c = document.createElement('span');
+      c.className = 'chip';
+      c.innerHTML = '<b>' + (PROP_LABEL[p] || p) + '</b> <span class="x">×' + msg.summary.tracks[p] + '</span>';
+      chips.appendChild(c);
+    });
+
+    const issues = $('issues'); issues.innerHTML = '';
+    let list = msg.issues || [];
+    const errors = list.filter((i) => i.level === 'error').length;
+    if (!list.length) {
+      list = [{ level: 'ok', layer: '', msg: 'Tudo compatível — deve reproduzir fiel na Unity' }];
+    }
+    list.forEach((i) => {
+      const el = document.createElement('div');
+      el.className = 'issue lv-' + i.level;
+      el.innerHTML =
+        '<span class="dot dot-' + i.level + '"></span>' +
+        '<span>' + i.msg + (i.layer ? ' <span class="layer">· ' + i.layer + '</span>' : '') + '</span>';
+      issues.appendChild(el);
+    });
+
+    $('note').textContent = errors
+      ? errors + ' propriedade(s) serão ignoradas na Unity'
+      : 'Coordenadas e easing preservados';
+  }
+
+  onmessage = (e) => {
+    const msg = e.data.pluginMessage;
+    if (!msg) return;
+    if (msg.type === 'scan') render(msg);
+    if (msg.type === 'file') {
+      const blob = new Blob([msg.json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = msg.filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+</script>

@@ -1,0 +1,169 @@
+{
+  "format": "fmu",
+  "version": "0.1",
+  "generator": "figma-motion-unity/exporter 0.1",
+  "source": { "file": "POC: Clínica Médica", "nodeId": "55:1333", "name": "listening-indicator-1" },
+  "coordinateSpace": "figma-top-left-px",
+  "timeline": { "duration": 2.0, "loop": true },
+  "node": {
+    "id": "55:1333",
+    "name": "listening-indicator-1",
+    "type": "FRAME",
+    "rect": { "x": 472, "y": 463, "w": 64, "h": 64 },
+    "opacity": 1,
+    "cornerRadius": 0,
+    "fill": null,
+    "stroke": null,
+    "tracks": [],
+    "children": [
+      {
+        "id": "55:1338",
+        "name": "ring-outer",
+        "type": "ELLIPSE",
+        "rect": { "x": 0, "y": 0, "w": 64, "h": 64 },
+        "opacity": 0.35,
+        "cornerRadius": 0,
+        "fill": null,
+        "stroke": { "color": "#87a782", "opacity": 1, "weight": 1.5 },
+        "tracks": [
+          {
+            "property": "OPACITY",
+            "base": 0.35,
+            "relative": false,
+            "keys": [
+              { "t": 0.0, "v": 0.35, "ease": [0.5, 0, 0.5, 1] },
+              { "t": 0.6, "v": 0.5, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 1.2, "v": 0.35, "ease": [0.42, 0, 0.58, 1] }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "55:1339",
+        "name": "ring-inner",
+        "type": "ELLIPSE",
+        "rect": { "x": 8, "y": 8, "w": 48, "h": 48 },
+        "opacity": 1,
+        "cornerRadius": 0,
+        "fill": { "color": "#353630", "opacity": 0.478 },
+        "stroke": { "color": "#fefefe", "opacity": 0.078, "weight": 1 },
+        "tracks": [],
+        "effects": [{ "type": "DROP_SHADOW", "radius": 10 }]
+      },
+      {
+        "id": "55:1354",
+        "name": "bar-1",
+        "type": "RECTANGLE",
+        "rect": { "x": 24, "y": 26, "w": 3, "h": 12 },
+        "opacity": 1,
+        "cornerRadius": 2,
+        "fill": { "color": "#87a782", "opacity": 1 },
+        "stroke": null,
+        "tracks": [
+          {
+            "property": "HEIGHT",
+            "base": 12,
+            "relative": false,
+            "keys": [
+              { "t": 0.0,  "v": 12, "ease": [0.5, 0, 0.5, 1] },
+              { "t": 0.24, "v": 22, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.48, "v": 8,  "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.72, "v": 20, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.96, "v": 6,  "ease": [0.42, 0, 0.58, 1] },
+              { "t": 1.2,  "v": 12, "ease": [0.42, 0, 0.58, 1] }
+            ]
+          },
+          {
+            "property": "TRANSLATION_Y",
+            "base": 26,
+            "relative": true,
+            "keys": [
+              { "t": 0.0,  "v": 0,  "ease": [0.5, 0, 0.5, 1] },
+              { "t": 0.24, "v": -5, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.48, "v": 2,  "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.72, "v": -4, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.96, "v": 3,  "ease": [0.42, 0, 0.58, 1] },
+              { "t": 1.2,  "v": 0,  "ease": [0.42, 0, 0.58, 1] }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "55:1369",
+        "name": "bar-2",
+        "type": "RECTANGLE",
+        "rect": { "x": 30, "y": 22, "w": 3, "h": 20 },
+        "opacity": 1,
+        "cornerRadius": 2,
+        "fill": { "color": "#87a782", "opacity": 1 },
+        "stroke": null,
+        "tracks": [
+          {
+            "property": "HEIGHT",
+            "base": 20,
+            "relative": false,
+            "keys": [
+              { "t": 0.0,  "v": 20, "ease": [0.5, 0, 0.5, 1] },
+              { "t": 0.24, "v": 8,  "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.48, "v": 24, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.72, "v": 10, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.96, "v": 22, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 1.2,  "v": 20, "ease": [0.42, 0, 0.58, 1] }
+            ]
+          },
+          {
+            "property": "TRANSLATION_Y",
+            "base": 22,
+            "relative": true,
+            "keys": [
+              { "t": 0.0,  "v": 0,  "ease": [0.5, 0, 0.5, 1] },
+              { "t": 0.24, "v": 6,  "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.48, "v": -2, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.72, "v": 5,  "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.96, "v": -1, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 1.2,  "v": 0,  "ease": [0.42, 0, 0.58, 1] }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "55:1384",
+        "name": "bar-3",
+        "type": "RECTANGLE",
+        "rect": { "x": 36, "y": 25, "w": 3, "h": 14 },
+        "opacity": 1,
+        "cornerRadius": 2,
+        "fill": { "color": "#87a782", "opacity": 1 },
+        "stroke": null,
+        "tracks": [
+          {
+            "property": "HEIGHT",
+            "base": 14,
+            "relative": false,
+            "keys": [
+              { "t": 0.0,  "v": 14, "ease": [0.5, 0, 0.5, 1] },
+              { "t": 0.24, "v": 20, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.48, "v": 6,  "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.72, "v": 22, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.96, "v": 10, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 1.2,  "v": 14, "ease": [0.42, 0, 0.58, 1] }
+            ]
+          },
+          {
+            "property": "TRANSLATION_Y",
+            "base": 25,
+            "relative": true,
+            "keys": [
+              { "t": 0.0,  "v": 0,  "ease": [0.5, 0, 0.5, 1] },
+              { "t": 0.24, "v": -3, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.48, "v": 4,  "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.72, "v": -4, "ease": [0.42, 0, 0.58, 1] },
+              { "t": 0.96, "v": 2,  "ease": [0.42, 0, 0.58, 1] },
+              { "t": 1.2,  "v": 0,  "ease": [0.42, 0, 0.58, 1] }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
