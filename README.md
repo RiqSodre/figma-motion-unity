@@ -42,7 +42,7 @@ that maps cleanly to native Unity UI.
 **Unity side** (Unity 2021.3+; uGUI) — install as a package:
 1. Package Manager → **Add package from git URL…**:
    ```
-   https://github.com/SEU-USUARIO/figma-motion-unity.git?path=/unity
+   https://github.com/RiqSodre/figma-motion-unity.git?path=/unity
    ```
    (Newtonsoft Json is pulled in automatically as a dependency.)
 2. Drop a `.fmu` file into `Assets/`. It imports as a prefab with a child clip.

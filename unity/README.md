@@ -1,7 +1,7 @@
 # FMU — Figma Motion to Unity
 
 Import **Figma Motion** animations as native Unity UI (real hierarchy + `AnimationClip`) —
-not a rendered video. Part of the [FMU project](https://github.com/) (Figma export plugin
+not a rendered video. Part of the [FMU project](https://github.com/RiqSodre/figma-motion-unity) (Figma export plugin
 + this Unity package).
 
 ## Install
@@ -9,7 +9,7 @@ not a rendered video. Part of the [FMU project](https://github.com/) (Figma expo
 **Package Manager → Add package from git URL:**
 
 ```
-https://github.com/SEU-USUARIO/figma-motion-unity.git?path=/unity
+https://github.com/RiqSodre/figma-motion-unity.git?path=/unity
 ```
 
 Or **Add package from disk…** and pick this folder's `package.json` (for local development).
