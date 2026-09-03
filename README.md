@@ -1,4 +1,4 @@
-# Figma Motion → Unity (POC)
+# Figma Motion → Unity
 
 Proof-of-concept for a pipeline that copies a **Figma Motion** animation into
 **Unity** as native, editable UI + an `AnimationClip` — not a rendered video.
