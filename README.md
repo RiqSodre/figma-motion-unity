@@ -39,14 +39,18 @@ that maps cleanly to native Unity UI.
 2. Select the animated frame, run the plugin, click **Exportar .fmu**. (Or just use
    the provided sample and skip this.)
 
-**Unity side** (Unity 2021.3+; uGUI)
-1. Install **Newtonsoft Json** — Package Manager → *Add package by name* →
-   `com.unity.nuget.newtonsoft-json`.
-2. Copy `unity/Editor/` and `unity/Runtime/` into your project's `Assets/` (the
-   `Editor` folder name matters — it keeps the importer editor-only).
-3. Drop a `.fmu` file into `Assets/`. It imports as a prefab with a child clip.
-4. Put a **Canvas** in a scene, drag the imported prefab under it, press **Play**.
-   The `FmuPlayer` drives the clip (loops by default).
+**Unity side** (Unity 2021.3+; uGUI) — install as a package:
+1. Package Manager → **Add package from git URL…**:
+   ```
+   https://github.com/SEU-USUARIO/figma-motion-unity.git?path=/unity
+   ```
+   (Newtonsoft Json is pulled in automatically as a dependency.)
+2. Drop a `.fmu` file into `Assets/`. It imports as a prefab with a child clip.
+3. Select it → **Add to Scene (under Canvas)** in the inspector (or drag it under a
+   Canvas yourself), then press **Play**. The `FmuPlayer` loops the clip.
+
+Import the **Listening Indicator** sample from the package page for a ready example.
+See [`unity/README.md`](unity/README.md) for package details.
 
 ## How fidelity is preserved
 

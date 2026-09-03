@@ -1,0 +1,16 @@
+{
+  "name": "FMU.Editor",
+  "rootNamespace": "Fmu",
+  "references": [
+    "FMU.Runtime",
+    "UnityEngine.UI",
+    "Newtonsoft.Json"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "autoReferenced": true,
+  "overrideReferences": false
+}

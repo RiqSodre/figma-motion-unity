@@ -1,0 +1,11 @@
+{
+  "name": "FMU.Runtime",
+  "rootNamespace": "Fmu",
+  "references": [
+    "UnityEngine.UI"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "autoReferenced": true
+}

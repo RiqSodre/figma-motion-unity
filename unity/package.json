@@ -1,0 +1,30 @@
+{
+  "name": "com.ricardosodre.fmu",
+  "version": "0.1.0",
+  "displayName": "FMU — Figma Motion to Unity",
+  "description": "Import Figma Motion animations as native Unity UI (real hierarchy + AnimationClip), not a rendered video. Includes a ScriptedImporter for .fmu files, a resolution-independent SDF shape shader, and a runtime player.",
+  "unity": "2021.3",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  },
+  "keywords": [
+    "figma",
+    "figma-motion",
+    "animation",
+    "motion-design",
+    "ui",
+    "ugui",
+    "design-to-code"
+  ],
+  "author": {
+    "name": "Ricardo Sodré"
+  },
+  "license": "MIT",
+  "samples": [
+    {
+      "displayName": "Listening Indicator",
+      "description": "Voice/listening indicator: pulsing ring + three equalizer bars.",
+      "path": "Samples~/ListeningIndicator"
+    }
+  ]
+}
