@@ -22,7 +22,9 @@ namespace Fmu
         {
             { "OPACITY", "ok" }, { "HEIGHT", "ok" }, { "WIDTH", "ok" },
             { "TRANSLATION_X", "ok" }, { "TRANSLATION_Y", "ok" },
-            { "ROTATION", "beta" }, { "SCALE", "beta" }, { "SCALE_X", "beta" }, { "SCALE_Y", "beta" },
+            { "SCALE_X", "ok" }, { "SCALE_Y", "ok" }, { "SCALE", "ok" },
+            { "FILL_R", "ok" }, { "FILL_G", "ok" }, { "FILL_B", "ok" }, { "FILL_A", "ok" },
+            { "ROTATION", "beta" },
         };
 
         FmuDoc _doc;
@@ -57,6 +59,8 @@ namespace Fmu
             EditorGUILayout.Space(6);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("sampleRate"),
                 new GUIContent("Sample Rate", "Keyframes gerados por segundo ao amostrar o easing."));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("springSettle"),
+                new GUIContent("Spring Settle", "Menor = kick mais forte + settle (mais perto do Figma); 1 = mais suave."));
 
             EditorGUILayout.Space(6);
             using (new EditorGUI.DisabledScope(_doc == null))

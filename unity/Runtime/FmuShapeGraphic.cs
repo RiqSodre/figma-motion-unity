@@ -17,6 +17,12 @@ namespace Fmu
         public FmuShapeType shape = FmuShapeType.RoundedRect;
         public float cornerRadius = 0f;   // pixels; ignored for Ellipse (uses min half-extent)
 
+        // Ring / arc (ellipse only). innerRadius is a 0..1 fraction of the radius; arcHalf
+        // >= PI means a full disc/ring. arcCenter/arcHalf are in Unity angle space (radians).
+        [Range(0f, 1f)] public float innerRadius = 0f;
+        public float arcCenter = 0f;
+        public float arcHalf = Mathf.PI;
+
         protected override void OnEnable()
         {
             base.OnEnable();
@@ -56,24 +62,25 @@ namespace Fmu
 
             float cx = r.center.x, cy = r.center.y;
             Color32 col = color;
+            var arc = new Vector4(radius, innerRadius, arcCenter, arcHalf);
 
-            AddVert(vh, r.xMin, r.yMin, cx, cy, halfW, halfH, radius, col);
-            AddVert(vh, r.xMin, r.yMax, cx, cy, halfW, halfH, radius, col);
-            AddVert(vh, r.xMax, r.yMax, cx, cy, halfW, halfH, radius, col);
-            AddVert(vh, r.xMax, r.yMin, cx, cy, halfW, halfH, radius, col);
+            AddVert(vh, r.xMin, r.yMin, cx, cy, halfW, halfH, arc, col);
+            AddVert(vh, r.xMin, r.yMax, cx, cy, halfW, halfH, arc, col);
+            AddVert(vh, r.xMax, r.yMax, cx, cy, halfW, halfH, arc, col);
+            AddVert(vh, r.xMax, r.yMin, cx, cy, halfW, halfH, arc, col);
 
             vh.AddTriangle(0, 1, 2);
             vh.AddTriangle(2, 3, 0);
         }
 
         static void AddVert(VertexHelper vh, float x, float y, float cx, float cy,
-                            float halfW, float halfH, float radius, Color32 col)
+                            float halfW, float halfH, Vector4 arc, Color32 col)
         {
             var v = UIVertex.simpleVert;
             v.position = new Vector3(x, y, 0f);
             v.color = col;
             v.uv0 = new Vector4(x - cx, y - cy, halfW, halfH); // pos rel. center + half-size
-            v.uv1 = new Vector4(radius, 0f, 0f, 0f);
+            v.uv1 = arc;                                        // (radius, innerFrac, arcCenter, arcHalf)
             vh.AddVert(v);
         }
     }

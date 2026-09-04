@@ -108,7 +108,8 @@
   const PROP_LABEL = {
     OPACITY: 'Opacity', HEIGHT: 'Height', WIDTH: 'Width',
     TRANSLATION_X: 'Move X', TRANSLATION_Y: 'Move Y',
-    ROTATION: 'Rotation', SCALE: 'Scale', SCALE_X: 'Scale X', SCALE_Y: 'Scale Y',
+    ROTATION: 'Rotation', SCALE: 'Scale', SCALE_XY: 'Scale', SCALE_X: 'Scale X', SCALE_Y: 'Scale Y',
+    fills: 'Color',
   };
 
   $('export').onclick = () => parent.postMessage({ pluginMessage: { type: 'export' } }, '*');

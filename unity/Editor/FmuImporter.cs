@@ -25,6 +25,12 @@ namespace Fmu
         [Tooltip("Keyframes baked per second when sampling easing curves.")]
         public int sampleRate = 60;
 
+        [Range(0.3f, 1f)]
+        [Tooltip("How much of each spring segment the spring uses before holding at the " +
+                 "target. Lower = punchier kick + a brief settle (closer to Figma); 1 = the " +
+                 "spring is spread across the whole segment (softest).")]
+        public float springSettle = 0.7f;
+
         public override void OnImportAsset(AssetImportContext ctx)
         {
             var text = File.ReadAllText(ctx.assetPath);
@@ -64,7 +70,7 @@ namespace Fmu
                 name = doc.node.name + "_clip",
                 frameRate = Mathf.Max(1, sampleRate)
             };
-            BuildCurves(doc.node, "", clip);
+            BuildCurves(doc.node, "", clip, springSettle);
 
             // The clip itself is NOT looping: its keyframes may end before the
             // timeline duration (a hold tail). FmuPlayer owns looping over the full
@@ -79,7 +85,7 @@ namespace Fmu
             animator.applyRootMotion = false;
             var player = root.AddComponent<FmuPlayer>();
             player.clip = clip;
-            player.loop = doc.timeline == null || doc.timeline.loop;
+            player.playMode = (doc.timeline == null || doc.timeline.loop) ? FmuPlayMode.Loop : FmuPlayMode.Once;
             player.duration = doc.timeline != null ? doc.timeline.duration : ClipLength(clip);
 
             // --- register assets ---
@@ -92,34 +98,80 @@ namespace Fmu
         // Hierarchy
         // ------------------------------------------------------------------
 
+        // Name of the nested "center transform" child inserted for wrapper nodes.
+        const string XformChild = "__xform";
+
+        static bool HasCenterChannel(FmuNode n) =>
+            HasTrack(n, "ROTATION") || HasTrack(n, "SCALE") || HasTrack(n, "SCALE_X") || HasTrack(n, "SCALE_Y");
+        static bool HasFrameChannel(FmuNode n) =>
+            HasTrack(n, "TRANSLATION_X") || HasTrack(n, "TRANSLATION_Y") || HasTrack(n, "HEIGHT") || HasTrack(n, "WIDTH");
+        static bool NeedsWrapper(FmuNode n) => HasCenterChannel(n) && HasFrameChannel(n);
+
         static GameObject BuildNode(FmuNode n, bool isRoot, Material sdfMat)
         {
             var go = new GameObject(n.name, typeof(RectTransform));
             var rt = (RectTransform)go.transform;
 
-            // Figma top-left model: anchor + pivot to the parent's top-left,
-            // y grows downward -> negate for Unity's y-up.
+            // Anchor to the parent's top-left; y grows downward -> negate for Unity's y-up.
             rt.anchorMin = new Vector2(0, 1);
             rt.anchorMax = new Vector2(0, 1);
-            rt.pivot = new Vector2(0, 1);
             rt.sizeDelta = new Vector2(n.rect.w, n.rect.h);
-            rt.anchoredPosition = isRoot ? Vector2.zero : new Vector2(n.rect.x, -n.rect.y);
+
+            // Figma scales/rotates around the CENTER, but HEIGHT/WIDTH grow from the TOP-LEFT
+            // and TRANSLATION is top-left based. Three cases:
+            //  - center-only (scale/rotate, no size/pos anim): a center pivot on this node.
+            //  - frame + center (both): keep this node top-left for size/pos, and nest a
+            //    center-pivoted "__xform" child that carries the rotation/scale + the visual.
+            //  - otherwise: top-left pivot.
+            bool wrapper = NeedsWrapper(n);
+            bool centerOnly = HasCenterChannel(n) && !HasFrameChannel(n);
+
+            if (centerOnly)
+            {
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.anchoredPosition = isRoot
+                    ? Vector2.zero
+                    : new Vector2(n.rect.x + n.rect.w * 0.5f, -(n.rect.y + n.rect.h * 0.5f));
+            }
+            else
+            {
+                rt.pivot = new Vector2(0, 1);
+                rt.anchoredPosition = isRoot ? Vector2.zero : new Vector2(n.rect.x, -n.rect.y);
+            }
             rt.localScale = Vector3.one; // RectTransforms built in a ScriptedImporter can
                                          // serialize with scale 0 -> invisible; force 1.
 
-            AddVisual(go, n, sdfMat);
+            // `host` holds the visual, opacity and children. For wrapper nodes that is a
+            // nested center-pivoted child so rotation/scale happen around the center while
+            // the outer node still owns top-left position/size.
+            RectTransform host = rt;
+            if (wrapper)
+            {
+                var inner = new GameObject(XformChild, typeof(RectTransform));
+                var irt = (RectTransform)inner.transform;
+                irt.SetParent(rt, false);
+                irt.anchorMin = Vector2.zero;   // stretch to fill the outer node
+                irt.anchorMax = Vector2.one;
+                irt.offsetMin = Vector2.zero;
+                irt.offsetMax = Vector2.zero;
+                irt.pivot = new Vector2(0.5f, 0.5f);
+                irt.localScale = Vector3.one;
+                host = irt;
+            }
+
+            AddVisual(host.gameObject, n, sdfMat);
 
             // Opacity: nodes carrying an OPACITY track (or a non-opaque base) get
             // a CanvasGroup so alpha animates independently of color.
             if (HasTrack(n, "OPACITY") || n.opacity < 0.999f)
             {
-                var cg = go.AddComponent<CanvasGroup>();
+                var cg = host.gameObject.AddComponent<CanvasGroup>();
                 cg.alpha = n.opacity;
             }
 
             if (n.children != null)
                 foreach (var c in n.children)
-                    BuildNode(c, false, sdfMat).transform.SetParent(rt, false);
+                    BuildNode(c, false, sdfMat).transform.SetParent(host, false);
 
             return go;
         }
@@ -143,6 +195,14 @@ namespace Fmu
             if (n.type == "ELLIPSE")
             {
                 g.shape = FmuShapeType.Ellipse;
+                if (n.arc != null)
+                {
+                    // Figma angles (0=+x, clockwise) -> Unity (0=+x, CCW): negate. The sector
+                    // [a0,a1] maps to a center angle and half-aperture in Unity space.
+                    g.innerRadius = Mathf.Clamp01(n.arc.inner);
+                    g.arcCenter = -0.5f * (n.arc.a0 + n.arc.a1);
+                    g.arcHalf = 0.5f * Mathf.Abs(n.arc.a1 - n.arc.a0);
+                }
             }
             else
             {
@@ -188,21 +248,33 @@ namespace Fmu
         // Curves
         // ------------------------------------------------------------------
 
-        static void BuildCurves(FmuNode n, string path, AnimationClip clip)
+        static void BuildCurves(FmuNode n, string path, AnimationClip clip, float springSettle)
         {
+            // For wrapper nodes, frame channels bind to the outer path; everything else
+            // (rotation/scale/opacity/color = the visual/center) binds to the "__xform" child,
+            // which is also where children live.
+            bool wrapper = NeedsWrapper(n);
+            string innerPath = wrapper
+                ? (string.IsNullOrEmpty(path) ? XformChild : path + "/" + XformChild)
+                : path;
+
             if (n.tracks != null)
                 foreach (var t in n.tracks)
-                    BindTrack(n, t, path, clip);
+                {
+                    bool frameChannel = t.property == "TRANSLATION_X" || t.property == "TRANSLATION_Y"
+                                     || t.property == "HEIGHT" || t.property == "WIDTH";
+                    BindTrack(n, t, frameChannel ? path : innerPath, clip, springSettle);
+                }
 
             if (n.children != null)
                 foreach (var c in n.children)
                 {
-                    var childPath = string.IsNullOrEmpty(path) ? c.name : path + "/" + c.name;
-                    BuildCurves(c, childPath, clip);
+                    var childPath = string.IsNullOrEmpty(innerPath) ? c.name : innerPath + "/" + c.name;
+                    BuildCurves(c, childPath, clip, springSettle);
                 }
         }
 
-        static void BindTrack(FmuNode n, FmuTrack t, string path, AnimationClip clip)
+        static void BindTrack(FmuNode n, FmuTrack t, string path, AnimationClip clip, float springSettle)
         {
             System.Type type;
             string prop;
@@ -232,10 +304,10 @@ namespace Fmu
                     map = v => -(t.@base + (t.relative ? v : 0f));
                     break;
                 case "ROTATION":
-                    // Figma rotates CCW-positive in its y-down space; negate for Unity's
-                    // y-up so visual direction matches. (Untested — no rotation in sample.)
+                    // The layout is visually faithful (not mirrored), so the angle maps
+                    // directly: positive = counterclockwise in both Figma and Unity UI.
                     type = typeof(RectTransform); prop = "localEulerAnglesRaw.z";
-                    map = v => -(t.@base * (t.relative ? 0f : 1f) + v);
+                    map = v => t.relative ? t.@base + v : v;
                     break;
                 case "SCALE":
                 case "SCALE_X":
@@ -245,22 +317,34 @@ namespace Fmu
                     prop = t.property == "SCALE_Y" ? "m_LocalScale.y" : "m_LocalScale.x";
                     map = v => t.relative ? t.@base + v : v;
                     if (t.property == "SCALE") // uniform: also bind Y below
-                        BindScaleUniformY(t, path, clip);
+                        BindScaleUniformY(t, path, clip, springSettle);
+                    break;
+                case "FILL_R":
+                    type = typeof(FmuShapeGraphic); prop = "m_Color.r"; map = v => v;
+                    break;
+                case "FILL_G":
+                    type = typeof(FmuShapeGraphic); prop = "m_Color.g"; map = v => v;
+                    break;
+                case "FILL_B":
+                    type = typeof(FmuShapeGraphic); prop = "m_Color.b"; map = v => v;
+                    break;
+                case "FILL_A":
+                    type = typeof(FmuShapeGraphic); prop = "m_Color.a"; map = v => v;
                     break;
                 default:
-                    return; // unsupported (FILL_COLOR/gradients, springs) — see SCHEMA.md
+                    return; // unsupported (animated gradients, path morphs) — see SCHEMA.md
             }
 
-            var curve = BakeCurve(t, map, clip.frameRate);
+            var curve = BakeCurve(t, map, clip.frameRate, springSettle);
             var binding = new EditorCurveBinding { path = path, type = type, propertyName = prop };
             AnimationUtility.SetEditorCurve(clip, binding, curve);
         }
 
         // Uniform SCALE also drives Y (BindTrack handles X).
-        static void BindScaleUniformY(FmuTrack t, string path, AnimationClip clip)
+        static void BindScaleUniformY(FmuTrack t, string path, AnimationClip clip, float springSettle)
         {
             System.Func<float, float> map = v => t.relative ? t.@base + v : v;
-            var curve = BakeCurve(t, map, clip.frameRate);
+            var curve = BakeCurve(t, map, clip.frameRate, springSettle);
             var binding = new EditorCurveBinding
             {
                 path = path,
@@ -271,7 +355,7 @@ namespace Fmu
         }
 
         // Sample each segment's cubic-bezier easing into dense linear keyframes.
-        static AnimationCurve BakeCurve(FmuTrack t, System.Func<float, float> map, float frameRate)
+        static AnimationCurve BakeCurve(FmuTrack t, System.Func<float, float> map, float frameRate, float springSettle)
         {
             var keys = new List<Keyframe>();
             var src = t.keys;
@@ -282,7 +366,11 @@ namespace Fmu
                 var b = src[i + 1];
                 float t0 = a.t, t1 = b.t;
                 float va = map(a.v), vb = map(b.v);
-                var bez = new UnitBezier(a.ease);
+
+                bool isSpring = a.spring.HasValue;
+                bool isHold = a.hold;
+                var spring = isSpring ? new SpringEasing(a.spring.Value, springSettle) : default;
+                var bez = (!isSpring && !isHold) ? new UnitBezier(a.ease) : default;
 
                 float dt = Mathf.Max(0.0001f, t1 - t0);
                 int steps = Mathf.Max(1, Mathf.RoundToInt(dt * frameRate));
@@ -291,7 +379,8 @@ namespace Fmu
                 for (int s = 0; s < steps; s++)
                 {
                     float x = s / (float)steps;        // normalized time in segment
-                    float y = bez.SampleY(x);          // eased progress 0..1
+                    // eased progress: hold=0 (constant), spring (overshoots >1), else bezier
+                    float y = isHold ? 0f : (isSpring ? spring.SampleY(x) : bez.SampleY(x));
                     keys.Add(new Keyframe(t0 + x * dt, Mathf.Lerp(va, vb, y)));
                 }
             }
@@ -371,6 +460,44 @@ namespace Fmu
             if (x <= 0f) return 0f;
             if (x >= 1f) return 1f;
             return SampleCurveY(SolveCurveX(x));
+        }
+    }
+
+    // Perceptual spring (Apple-style): a segment's progress 0->1 with overshoot.
+    // Figma exposes only `bounce`; the spring's duration is the segment itself, so
+    // natural frequency omega = 2π over the normalized segment. Damping ratio
+    // zeta = 1 - bounce. SampleY may exceed 1 (the overshoot = the bounce), and is
+    // normalized so SampleY(0)=0 and SampleY(1)=1 (continuity at the next keyframe).
+    public struct SpringEasing
+    {
+        readonly bool critical;
+        readonly float omega, A, omegaD, rEnd, settle;
+
+        public SpringEasing(float bounce, float settle)
+        {
+            this.settle = Mathf.Clamp(settle, 0.2f, 1f);
+            float zeta = Mathf.Clamp(1f - bounce, 0.05f, 1f);
+            omega = 2f * Mathf.PI;                 // one perceptual period over the settle window
+            critical = zeta >= 0.999f;
+            A = zeta * omega;
+            omegaD = critical ? 0f : omega * Mathf.Sqrt(1f - zeta * zeta);
+            rEnd = Raw(1f, critical, omega, A, omegaD);
+        }
+
+        static float Raw(float u, bool critical, float omega, float A, float omegaD)
+        {
+            if (u <= 0f) return 0f;
+            if (critical) return 1f - Mathf.Exp(-omega * u) * (1f + omega * u);
+            return 1f - Mathf.Exp(-A * u) * (Mathf.Cos(omegaD * u) + (A / omegaD) * Mathf.Sin(omegaD * u));
+        }
+
+        // x is normalized segment time. The spring plays out (overshoot included) over
+        // [0, settle]; past that it holds the target — a punchier kick + a Figma-like settle.
+        public float SampleY(float x)
+        {
+            float u = x / settle;
+            if (u >= 1f) return 1f;
+            return Raw(u, critical, omega, A, omegaD) + (1f - rEnd) * u;
         }
     }
 }

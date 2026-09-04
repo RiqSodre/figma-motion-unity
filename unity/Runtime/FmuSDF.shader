@@ -94,13 +94,49 @@ Shader "FMU/UI SDF"
                 return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
             }
 
+            // Signed distance to an arc / annular sector, symmetric about +y (Inigo Quilez).
+            // sc = (sin, cos) of the half-aperture; ra = mid radius; rb = half thickness.
+            float sdArc(float2 p, float2 sc, float ra, float rb)
+            {
+                p.x = abs(p.x);
+                return ((sc.y * p.x > sc.x * p.y) ? length(p - sc * ra) : abs(length(p) - ra)) - rb;
+            }
+
             fixed4 frag(v2f i) : SV_Target
             {
                 float2 p = i.uv0.xy;
                 float2 b = i.uv0.zw;
-                float r = min(i.uv1.x, min(b.x, b.y));
+                float innerFrac = i.uv1.y;
+                float arcCenter = i.uv1.z;
+                float arcHalf   = i.uv1.w;
 
-                float d = sdRoundBox(p, b, r);
+                float d;
+                if (innerFrac <= 0.0001 && arcHalf >= 3.14159)
+                {
+                    // Solid rounded box / disc.
+                    float r = min(i.uv1.x, min(b.x, b.y));
+                    d = sdRoundBox(p, b, r);
+                }
+                else
+                {
+                    // Ring / arc: circle of radius R = min(b), carved to [Rin, R].
+                    float R = min(b.x, b.y);
+                    float Rin = innerFrac * R;
+                    float ra = 0.5 * (R + Rin);
+                    float rb = 0.5 * (R - Rin);
+                    if (arcHalf >= 3.14159)
+                    {
+                        d = abs(length(p) - ra) - rb;               // full ring
+                    }
+                    else
+                    {
+                        float rot = 1.5707963 - arcCenter;          // bring arcCenter dir to +y
+                        float cs = cos(rot), sn = sin(rot);
+                        float2 pr = float2(cs * p.x - sn * p.y, sn * p.x + cs * p.y);
+                        d = sdArc(pr, float2(sin(arcHalf), cos(arcHalf)), ra, rb);
+                    }
+                }
+
                 float aa = fwidth(d) * 0.75 + 1e-5;
                 float alpha = 1.0 - smoothstep(-aa, aa, d);
 
